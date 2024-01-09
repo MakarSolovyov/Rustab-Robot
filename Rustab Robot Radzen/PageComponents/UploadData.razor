@@ -1,0 +1,95 @@
+﻿@inject IWebHostEnvironment Environment
+
+<RadzenCard Class="rz-my-auto rz-mx-auto">
+    <div class="row">
+        @if (UploadedFileFolder == "3. Scenarios")
+        {
+            <RadzenText TextStyle="TextStyle.Subtitle1">Файлы @UploadedFileLabel</RadzenText>
+        }
+        else
+        {
+            <RadzenText TextStyle="TextStyle.Subtitle1">Файл @UploadedFileLabel</RadzenText>
+        }    
+    </div>
+    <div class="row align-content-center">
+        <div class="col">
+            @if (UploadedFileFolder == "3. Scenarios")
+            {
+                <RadzenListBox Placeholder="Загрузите файлы ..." @bind-Value=@uploadedFileName Data=@fileNameList Style="width: 100%; height:200px" />
+            }
+            else
+            {
+                <RadzenTextBox Placeholder="Загрузите файл ..." @bind-Value="@uploadedFileName" class="w-100" ReadOnly />
+            }
+         </div>
+        <div class="col-1 col-offset-11 me-4">
+            <label class="rz-button rz-button-sm rz-variant-filled rz-primary rz-shade-default rz-border-radius-6" style="height: 40px; padding: 13px;" for="@UploadedFileLabel">Загрузить</label>
+            <InputFile class="form-control" OnChange="UploadFiles" id="@UploadedFileLabel" multiple hidden></InputFile>
+        </div>
+     </div>
+</RadzenCard>
+
+@code {
+    [Parameter] public string UploadedFileLabel { get; set; }
+    [Parameter] public string UploadedFileFolder { get; set; }
+    [Parameter] public List<string> TextFromXML { get; set; }
+    [Parameter] public EventCallback<List<int>> GetNumbersList { get; set; }
+    [Parameter] public EventCallback<List<string>> GetFilePaths { get; set; }
+    [Parameter] public EventCallback<string> GetJustUploadedFolder { get; set; }
+
+    private string uploadedFileName;
+    private List<string> fileNameList;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        uploadedFileName = TextFromXML[0];
+        fileNameList = TextFromXML;
+    }
+
+    private async Task UploadFiles(InputFileChangeEventArgs e)
+    {
+        List<string> fileNames = new List<string>();
+
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var path = Path.Combine(Environment.ContentRootPath, "UploadedFiles", UploadedFileFolder, file.Name);
+
+            await using FileStream fs = new(path, FileMode.Create);
+            long maxFileSize = 1024 * 150000;
+            await file.OpenReadStream(maxFileSize).CopyToAsync(fs);
+            fs.Close();
+
+            fileNames.Add(path);
+
+            uploadedFileName = fileNames[0];
+        }
+
+        fileNameList = fileNames;
+
+        _ = GetJustUploadedFolder.InvokeAsync(UploadedFileFolder);
+
+        List<int> numbersList;
+        if (UploadedFileFolder == "1. Schemes")
+        {
+            RastrSupplier.LoadFile(fileNames[0], Settings.shablonPaths[ShablonFileType.Scheme]);
+            numbersList = RastrSupplier.FillNumbersListFromRastr("node", "ny");
+            _ = GetNumbersList.InvokeAsync(numbersList);
+        }
+        else if (UploadedFileFolder == "5. Section")
+        {
+            RastrSupplier.LoadFile(fileNames[0], Settings.shablonPaths[ShablonFileType.Section]);
+            numbersList = RastrSupplier.FillNumbersListFromRastr("sechen", "ns");
+            _ = GetNumbersList.InvokeAsync(numbersList);
+        }
+        else if (UploadedFileFolder == "7. Trajectory")
+        {
+            RastrSupplier.LoadFile(fileNames[0], Settings.shablonPaths[ShablonFileType.Trajectory]);
+        }
+
+        _ = GetFilePaths.InvokeAsync(fileNames);
+
+        MainLayout.console.Log($"Загружены файлы {UploadedFileLabel}. Количество файлов: {fileNames.Count.ToString()}.");
+    }
+}

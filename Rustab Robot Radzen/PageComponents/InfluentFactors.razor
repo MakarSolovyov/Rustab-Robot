@@ -1,0 +1,231 @@
+﻿@using System.Xml.Serialization;
+@inject ContextMenuService ContextMenuService
+@inject IJSRuntime JS
+
+<RadzenCard Class="rz-my-auto rz-mx-auto">
+    <RadzenText TextStyle="TextStyle.H6"><strong>Влияющие факторы</strong></RadzenText>
+    <div class="row">
+        <div class="col-4">
+            <div class="row">
+                <RadzenText TextStyle="TextStyle.Subtitle1">Тип фактора</RadzenText>
+            </div>
+            <RadzenDropDown @bind-Value=@factorType Data=@factorTypeList AllowClear=true
+                            Placeholder="Выберите тип фактора" Style="width: 100%; max-width: 400px;" />
+            @if (factorType == factorTypeList[0])
+            {
+                numbersList = NodeNumbersList;
+            }
+            else if (factorType == factorTypeList[1])
+            {
+                numbersList = SectionNumbersList;
+            }
+            <div class="row mt-3">
+                <RadzenText TextStyle="TextStyle.Subtitle1">Номер узла/cечения</RadzenText>
+            </div>
+            <RadzenDropDown @bind-Value=@numberFromRastr Data=@numbersList AllowClear=true AllowFiltering="true"
+                            Placeholder="Выберите номер узла/cечения" Style="width: 100%; max-width: 400px;" />
+            <div class="row mt-3">
+                <RadzenText TextStyle="TextStyle.Subtitle1">Минимальное значение</RadzenText>
+            </div>
+            <RadzenTextBox Placeholder="Введите минимальное значение" @bind-Value="@influentFactorMinValue" class="w-100" />
+            <div class="row mt-3">
+                <RadzenText TextStyle="TextStyle.Subtitle1">Максимальное значение</RadzenText>
+            </div>
+            <RadzenTextBox Placeholder="Введите максимальное значение" @bind-Value="@influentFactorMaxValue" class="w-100" />
+            <div class="row text-center mt-3">
+                <div class="col">
+                    <RadzenButton Click=@(args => AddFactor()) Text="Добавить" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="rz-border-radius-6" style="height: 40px;" />
+                </div>
+                <div class="col">
+                    <RadzenButton Click=@(args => SaveFactors()) Text="Сохранить" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="rz-border-radius-6" style="height: 40px;" />
+                </div>
+                <div class="col">
+                    <label class="rz-button rz-button-sm rz-variant-filled rz-primary rz-shade-default rz-border-radius-6" style="height: 40px; padding: 13px;" for="gg">Загрузить</label>
+                    <InputFile class="form-control" OnChange="UploadFactors" id="gg" hidden></InputFile>
+@*                     <RadzenButton Click=@(args => UploadFactors()) Text="Загрузить" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.Small" class="rz-border-radius-6" style="height: 40px;" />
+ *@                </div>
+            </div>
+        </div>
+        <div class="col">
+            <RadzenDataGrid AllowFiltering="true" AllowColumnResize="false" AllowAlternatingRows="false" FilterMode="FilterMode.Simple"
+                            AllowSorting="true" PageSize="5" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                            Data="influentFactorList" TItem="InfluentFactorBase" @ref="grid" Style="height: 390px;" 
+                            CellContextMenu="@OnCellContextMenu" SelectionMode="DataGridSelectionMode.Single" @bind-Value=@selectedFactors>
+                <EmptyTemplate>
+                    <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">Влияющие факторы отсутсвуют</p>
+                </EmptyTemplate>
+                <Columns>
+                    <RadzenDataGridColumn TItem="InfluentFactorBase" Property="FactorType" Title="Тип фактора" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="InfluentFactorBase" Property="NumberFromRastr" Title="Номер узла/сечения" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="InfluentFactorBase" Property="MinValue" Title="Минимум" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="InfluentFactorBase" Property="MaxValue" Title="Максимум" TextAlign="TextAlign.Center" />
+                    <RadzenDataGridColumn TItem="InfluentFactorBase" Property="CurrentValue" Title="Текущее значение" TextAlign="TextAlign.Center" />
+                </Columns>
+            </RadzenDataGrid>
+        </div>
+    </div>
+</RadzenCard>
+
+@code {
+    private string factorType = null;
+    private int numberFromRastr = 0;
+    [Parameter] public List<int> NodeNumbersList { get; set; }
+    [Parameter] public List<int> SectionNumbersList { get; set; }
+    [Parameter] public List<InfluentFactorBase> InfluentFactorListFromXML { get; set; }
+    private List<int> numbersList;
+
+    private string influentFactorMinValue;
+    private string influentFactorMaxValue;
+    private List<InfluentFactorBase> influentFactorList = new List<InfluentFactorBase>();
+    IList<InfluentFactorBase> selectedFactors;
+
+    RadzenDataGrid<InfluentFactorBase> grid = new RadzenDataGrid<InfluentFactorBase>();
+    [Parameter] public EventCallback<List<InfluentFactorBase>> GetInfluentFactorList { get; set; }
+
+    LogicalFilterOperator logicalFilterOperator = LogicalFilterOperator.And;
+    FilterCaseSensitivity filterCaseSensitivity = FilterCaseSensitivity.CaseInsensitive;
+
+    private List<string> factorTypeList = new List<string>() // Попробовать в перечисление переделать
+    {
+        "Напряжение в узле",
+        "Переток в сечении"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        influentFactorList = InfluentFactorListFromXML;
+    }
+
+    void AddFactor()
+    {
+        if (factorType == factorTypeList[0])
+        {
+            VoltageFactor factor = new VoltageFactor();
+
+            factor.NumberFromRastr = numberFromRastr;
+            factor.MinValue = double.Parse(influentFactorMinValue);
+            factor.MaxValue = double.Parse(influentFactorMaxValue);
+            factor.CurrentValue = RastrSupplier.GetValue("node", "ny", factor.NumberFromRastr, "vras");
+
+            influentFactorList.Add(factor);
+            MainLayout.console.Log($"Добавлен влияющий фактор: {factorType}, номер узла: {numberFromRastr}.");
+        }
+        else if (factorType == factorTypeList[1])
+        {
+            SectionFactor factor = new SectionFactor();
+
+            factor.NumberFromRastr = numberFromRastr;
+            factor.MinValue = double.Parse(influentFactorMinValue);
+            factor.MaxValue = double.Parse(influentFactorMaxValue);
+            factor.CurrentValue = RastrSupplier.GetValue("sechen", "ns", factor.NumberFromRastr, "psech");
+
+            // TODO: Временное решение, поменять, когда будет универсальная функция получения генераторов влияющей станции
+            var regulGenList = RastrSupplier.GetResRegGenLists(false);
+            factor.RegulatingGeneratorsList = regulGenList;
+
+            influentFactorList.Add(factor);
+            MainLayout.console.Log($"Добавлен влияющий фактор: {factorType}, номер сечения: {numberFromRastr}.");
+        }
+        GetInfluentFactorList.InvokeAsync(influentFactorList);
+
+        grid.Reload();
+    }
+
+    void ClearFactors()
+    {
+        influentFactorList.Clear();
+        MainLayout.console.Log($"Список влияющих факторов очищен.");
+        grid.Reload();
+    }
+
+    void RemoveFactor(InfluentFactorBase factor)
+    {
+        influentFactorList.Remove(factor);
+        MainLayout.console.Log($"Удален влияющий фактор: {factor.FactorType}, номер сечения: {factor.NumberFromRastr}.");
+        grid.Reload();
+    }
+
+    async Task SaveFactors()
+    {
+        if (influentFactorList.Count == 0)
+        {
+            MainLayout.console.Log($"Таблица влияющих факторов пуста. Данные не сохранены.");
+            return;
+        }
+
+        string tmpFilePath = Path.Combine(Environment.CurrentDirectory, "CreatedFiles", "InfluentFactors", "tmpInfluentFactors.fact");
+
+        if (File.Exists(tmpFilePath))
+        {
+            File.Delete(tmpFilePath);
+        }
+        XmlSerializer formatter = new XmlSerializer(typeof(List<InfluentFactorBase>));
+        using (FileStream fs = new FileStream(tmpFilePath, FileMode.OpenOrCreate))
+        {
+            formatter.Serialize(fs, influentFactorList);
+        }
+
+        var fileStream = File.OpenRead(tmpFilePath);
+        var fileName = "factors.fact";
+        using var streamRef = new DotNetStreamReference(stream: fileStream);
+
+        await JS.InvokeVoidAsync("downloadFileFromStream", fileName, streamRef);
+
+        MainLayout.console.Log($"Влияющие факторы сохранены.");
+    }
+
+    async Task UploadFactors(InputFileChangeEventArgs e)
+    {
+        var path = Path.Combine(Environment.CurrentDirectory, "UploadedFiles", "InfluentFactors", e.File.Name);
+
+        await using FileStream fs = new(path, FileMode.Create);
+        long maxFileSize = 1024 * 150000;
+        await e.File.OpenReadStream(maxFileSize).CopyToAsync(fs);
+        fs.Close();
+
+        XmlSerializer formatter = new XmlSerializer(typeof(List<InfluentFactorBase>));
+
+        using (FileStream fileStream = new FileStream(path, FileMode.OpenOrCreate))
+        {
+            List<InfluentFactorBase>? xmlFactorsList = formatter.Deserialize(fileStream) as List<InfluentFactorBase>;
+
+            if (xmlFactorsList != null)
+            {
+                influentFactorList = xmlFactorsList;
+            }
+            else
+            {
+                throw new Exception($"Ошибка загрузки файла \"{path}\".");
+            }
+        }
+
+        MainLayout.console.Log($"Загружены влияющие факторы.");
+    }
+
+    void OnCellContextMenu(DataGridCellMouseEventArgs<InfluentFactorBase> args)
+    {
+        selectedFactors = new List<InfluentFactorBase>() { args.Data };
+
+        object item1 = 1;
+
+        ContextMenuService.Open(args,
+            new List<ContextMenuItem> {
+                new ContextMenuItem(){ Text = "Удалить фактор", Value = "Удалить фактор"},
+                new ContextMenuItem(){ Text = "Очистить список", Value = "Очистить список"},
+                },
+            (e) =>
+            {
+                if (e.Value.ToString() == "Удалить фактор")
+                {
+                    RemoveFactor(args.Data);
+                }
+                if (e.Value.ToString() == "Очистить список")
+                {
+                    ClearFactors();
+                }               
+            }
+         );
+    }
+}

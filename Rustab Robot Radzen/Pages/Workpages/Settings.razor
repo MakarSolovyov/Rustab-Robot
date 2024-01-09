@@ -1,0 +1,61 @@
+﻿@page "/settings"
+
+<PageTitle>Настройки</PageTitle>
+
+<RadzenText TextStyle="TextStyle.H4">Настройки</RadzenText>
+
+<div class="row mt-3">
+    <RadzenText TextStyle="TextStyle.Subtitle1">Директория для сохранения файлов расчета динамической устойчивости</RadzenText>
+    <RadzenTextBox Placeholder="Введите путь до папки" @bind-Value="@calcResultFolder" class="w-100" />
+</div>
+<div class="row mt-3">
+    <RadzenText TextStyle="TextStyle.Subtitle1">Директория для сохранения файлов результатов ранжирования возмущений</RadzenText>
+    <RadzenTextBox Placeholder="Введите путь до папки" @bind-Value="@rankResultFolder" class="w-100" />
+</div>
+<div class="row mt-3">
+    <RadzenText TextStyle="TextStyle.Subtitle1">Значение времени моделирования переходного процесса для расчета показателей тяжести</RadzenText>
+    <RadzenNumeric ShowUpDown="false" TValue="double" @bind-Value=@calcDSITimevalue Placeholder="Введите значение" />
+</div>
+<div class="row mt-3">
+    <RadzenText TextStyle="TextStyle.Subtitle1">Значение времени моделирования переходного процесса для классического расчета</RadzenText>
+    <RadzenNumeric ShowUpDown="false" TValue="double" @bind-Value=@calcTimevalue Placeholder="Введите значение" />
+</div>
+<div class="row mt-3">
+    <RadzenButton Click=@(args => AcceptNewSettings()) Text="Принять изменения настроек" ButtonStyle="ButtonStyle.Primary" class="rz-border-radius-6" />
+</div>
+
+@code {
+    private static SettingFromXML xmlNameListDemo = new SettingFromXML();
+    private static SettingFromXML xmlNameList = xmlNameListDemo.UploadXMLFile(xmlNameListDemo.FileXMLPath);
+    
+    public static string calcResultFolder = xmlNameList.CalcResultFolder; 
+    public static string rankResultFolder = xmlNameList.RankResultFolder; 
+    public static double calcDSITimevalue = xmlNameList.CalcDSITimevalue; 
+    public static double calcTimevalue = xmlNameList.CalcTimevalue; 
+
+    private static string pathtoShablonFile = Path.Combine(Environment.CurrentDirectory, "Shablons");
+    private static string[] allShablonsPaths = Directory.GetFiles(pathtoShablonFile, "*", SearchOption.AllDirectories);
+
+    public static Dictionary<ShablonFileType, string> shablonPaths = new Dictionary<ShablonFileType, string>()
+    {
+        [ShablonFileType.Scheme] = allShablonsPaths[0],
+        [ShablonFileType.SchemeCreation] = allShablonsPaths[1],
+        [ShablonFileType.Scenarios] = allShablonsPaths[2],
+        [ShablonFileType.Automation] = allShablonsPaths[3],
+        [ShablonFileType.Section] = allShablonsPaths[4],
+        [ShablonFileType.ControlledParameter] = allShablonsPaths[5],
+        [ShablonFileType.Trajectory] = allShablonsPaths[6],
+    };
+
+    void AcceptNewSettings()
+    {
+        xmlNameList.CalcResultFolder = calcResultFolder;
+        xmlNameList.RankResultFolder = rankResultFolder;
+        xmlNameList.CalcDSITimevalue = calcDSITimevalue;
+        xmlNameList.CalcTimevalue = calcTimevalue;
+
+        xmlNameList.SaveXMLFile(xmlNameList, xmlNameList.FileXMLPath);
+
+        MainLayout.console.Log($"Введены новые настройки.");
+    }
+}

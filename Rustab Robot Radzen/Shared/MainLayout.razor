@@ -1,0 +1,76 @@
+﻿@inherits LayoutComponentBase
+<RadzenComponents />
+<PageTitle>Rustab Robot</PageTitle>
+
+<RadzenLayout Style="grid-template-columns: auto 1fr auto; grid-template-areas: 'rz-header rz-header rz-header' 'rz-sidebar rz-body rz-right-sidebar' 'rz-footer rz-footer rz-footer'">
+    <RadzenHeader>
+        <RadzenStack Orientation="Orientation.Horizontal" AlignItems="AlignItems.Center" Gap="0">
+            <RadzenSidebarToggle Click="@(() => leftSidebarExpanded = !leftSidebarExpanded)" />
+            <RadzenLabel Text="Rustab Robot" />
+        </RadzenStack>
+    </RadzenHeader>
+    <RadzenSidebar @bind-Expanded="@leftSidebarExpanded">
+        <RadzenPanelMenu>
+            <RadzenPanelMenuItem Text="Главная" Icon="home" Path=""/>
+            <RadzenPanelMenuItem Text="Исходные данные" Icon="file_upload" Path="initialdata" />
+            <RadzenPanelMenuItem Text="Расчет" Icon="dashboard" Path="calculation" />
+            <RadzenPanelMenuItem Text="Настройки" Icon="settings" Path="settings" />
+        </RadzenPanelMenu>
+    </RadzenSidebar>
+    <RadzenBody>
+        <div class="rz-p-4">
+            @Body
+        </div>
+    </RadzenBody>
+    
+    <RadzenSidebar @bind-Expanded="@rightSidebarExpanded" Style="width: 300px; grid-area: rz-right-sidebar">
+        <div class="rz-p-4">
+            <div class="row">
+                <EventConsole @ref=@console/>
+            </div>
+            <div class="row mt-3">
+                <RadzenText TextAlign="TextAlign.Center" TextStyle="TextStyle.Subtitle1">Очистить директорию с расчетными файлами</RadzenText>
+            </div>
+            <div class="row mt-2">
+                <div class="col">
+                    <RadzenButton Click=@(args => ClearDirectory(uplFiles)) Text="UploadedFiles" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="rz-border-radius-6" />
+                </div>
+                <div class="col">
+                    <RadzenButton Click=@(args => ClearDirectory(creFiles)) Text="CreatedFiles" ButtonStyle="ButtonStyle.Primary" Size="ButtonSize.ExtraSmall" class="rz-border-radius-6" />
+                </div>
+            </div>
+            
+        </div>
+    </RadzenSidebar>
+    <RadzenFooter>
+        <RadzenText TextStyle="TextStyle.Body1">
+            «Rustab Robot», © 2021 - 2023
+        </RadzenText>
+    </RadzenFooter>
+</RadzenLayout>
+
+@code {
+    bool leftSidebarExpanded = true;
+    bool rightSidebarExpanded = true;
+
+    string uplFiles = "UploadedFiles";
+    string creFiles = "CreatedFiles";
+
+    public static EventConsole console;
+    
+    void ClearDirectory(string folder)
+    {
+        string _pathtoUploadedFiles = Path.Combine(Environment.CurrentDirectory, folder);
+        string[] allFilesPaths = Directory.GetFiles(_pathtoUploadedFiles, "*", SearchOption.AllDirectories);
+        
+        var counter = 0;
+        // Очистка директории от загруженных файлов
+        foreach (var filePath in allFilesPaths)
+        {
+            File.Delete(filePath);
+            counter++;
+        }
+
+        console.Log($"Очищена директория \"{folder}\", удалено файлов: {counter}.");
+    }
+}

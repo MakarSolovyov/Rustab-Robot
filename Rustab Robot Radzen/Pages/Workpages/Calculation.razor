@@ -1,0 +1,191 @@
+﻿@page "/calculation"
+@using System.Reflection;
+
+<PageTitle>Расчет</PageTitle>
+
+<div class="row">
+    <RadzenText TextStyle="TextStyle.H4">Расчет динамической устойчивости</RadzenText>
+</div>
+
+<div class="row mt-3">
+    <RadzenText TextStyle="TextStyle.Subtitle1">Формирование ремонтных схем</RadzenText>
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="false" AllowAlternatingRows="false" FilterMode="FilterMode.Simple"
+                    AllowSorting="true" PageSize="10" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="schemeList" TItem="Scheme" @ref="gridScheme">
+        <EmptyTemplate>
+            <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">Результаты расчета отсутсвуют</p>
+        </EmptyTemplate>
+        <Columns>
+            <RadzenDataGridColumn TItem="Scheme" Property="SchemeNumber" Title="№ схемы" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="Scheme" Property="SchemeName" Title="Схема сети" TextAlign="TextAlign.Center" />
+            <RadzenDataGridColumn TItem="Scheme" Property="SchemeGenNumber" Title="Кол-во ВГО" TextAlign="TextAlign.Center" />
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+<div class="row mt-3">
+    <RadzenText TextStyle="TextStyle.Subtitle1">Расчет показателей тяжести динамического перехода</RadzenText>
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="false" AllowAlternatingRows="false" FilterMode="FilterMode.Simple"
+                    AllowSorting="true" PageSize="10" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="dsiList" TItem="CSVDSIResult" @ref="gridDSI" >
+        <EmptyTemplate>
+            <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">Результаты расчета отсутсвуют</p>
+        </EmptyTemplate>
+        <Columns>
+            @foreach (var prop in gridDSIPropList)
+            {
+                string propName = prop.Name;
+                CsvHelper.Configuration.Attributes.NameAttribute propAttribute;
+                propAttribute = (CsvHelper.Configuration.Attributes.NameAttribute) prop.GetCustomAttribute(typeof(CsvHelper.Configuration.Attributes.NameAttribute));
+                string propTitle = propAttribute.Names[0];
+
+                <RadzenDataGridColumn TItem="CSVDSIResult" Property="@propName" Title="@propTitle" TextAlign="TextAlign.Center" />
+            }
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+<div class="row mt-3">
+    <RadzenText TextStyle="TextStyle.Subtitle1">Список возмущений, ранжированных по показателям тяжести</RadzenText>
+    <RadzenDataGrid AllowFiltering="true" AllowColumnResize="false" AllowAlternatingRows="false" FilterMode="FilterMode.Simple"
+                    AllowSorting="true" PageSize="10" AllowPaging="true" PagerHorizontalAlign="HorizontalAlign.Left" ShowPagingSummary="true"
+                    Data="dsiList" TItem="CSVDSIResult" @ref="gridDSI">
+        <EmptyTemplate>
+            <p style="color: lightgrey; font-size: 24px; text-align: center; margin: 2rem;">Результаты расчета отсутсвуют</p>
+        </EmptyTemplate>
+        <Columns>
+            @foreach (var prop in gridRankPropList)
+            {
+                string propName = prop.Name;
+                CsvHelper.Configuration.Attributes.NameAttribute propAttribute;
+                propAttribute = (CsvHelper.Configuration.Attributes.NameAttribute)prop.GetCustomAttribute(typeof(CsvHelper.Configuration.Attributes.NameAttribute));
+                string propTitle = propAttribute.Names[0];
+
+                <RadzenDataGridColumn TItem="CSVDSIResult" Property="@propName" Title="@propTitle" TextAlign="TextAlign.Center" />
+            }
+        </Columns>
+    </RadzenDataGrid>
+</div>
+
+<div class="row mt-3">
+    <RadzenButton Click=@(args => StartCalculation()) Text="Расчет" ButtonStyle="ButtonStyle.Primary" IsBusy="@busy" BusyText="Расчет..." class="rz-border-radius-6" />
+</div>
+
+@code {
+    private List<Scheme> schemeList = new List<Scheme>();
+    RadzenDataGrid<Scheme> gridScheme = new RadzenDataGrid<Scheme>();
+
+    private List<CSVDSIResult> dsiList = new List<CSVDSIResult>();
+    RadzenDataGrid<CSVDSIResult> gridDSI = new RadzenDataGrid<CSVDSIResult>();    
+    List<PropertyInfo> gridDSIPropList = typeof(CSVDSIResult).GetProperties().ToList();
+    List<PropertyInfo> gridRankPropList = typeof(CSVDSIResult).GetProperties().ToList();
+
+    FilesFromXML xmlNameList = new FilesFromXML();
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        xmlNameList = xmlNameList.UploadXMLFile(xmlNameList.FileXMLPath);
+        List<int> gridDSIPropIndexList = new List<int>() { 15, 13, 12, 6, 5, 4, 3, 2 };
+        foreach (var index in gridDSIPropIndexList)
+        {
+            gridDSIPropList.RemoveAt(index);
+        } 
+        List<int> gridRankPropIndexList = new List<int>() { 14, 13, 12, 11, 10, 9, 8, 7 };
+        foreach (var index in gridRankPropIndexList)
+        {
+            gridRankPropList.RemoveAt(index);
+        }
+    }
+
+    bool busy;
+    async Task StartCalculation()
+    {
+        busy = true;
+
+        RastrSupplier.LoadFile(xmlNameList.RstFilePath, Settings.shablonPaths[ShablonFileType.Scheme]);
+        RastrSupplier.LoadFile(xmlNameList.DfwFilePath, Settings.shablonPaths[ShablonFileType.Automation]);
+        RastrSupplier.LoadFile(xmlNameList.SchFilePath, Settings.shablonPaths[ShablonFileType.Section]);
+        RastrSupplier.LoadFile(xmlNameList.KprFilePath, Settings.shablonPaths[ShablonFileType.ControlledParameter]);
+        RastrSupplier.LoadFile(xmlNameList.Ut2FilePath, Settings.shablonPaths[ShablonFileType.Trajectory]);
+
+        MainLayout.console.Log("Запуск работы программы.");
+
+        // Запуск модуля по формированию ремонтных схем
+
+        MainLayout.console.Log("Запуск формирования ремонтных схем.");
+
+        await Task.Delay(100);
+        SchemeCreation schemeCreation = new SchemeCreation();
+        schemeList = schemeCreation.CreateSchemeList(xmlNameList.SchemeExcelFilePath, xmlNameList.RstFilePath);
+        MainLayout.console.Log($"Ремонтные схемы сформированы. Количество схем : {schemeList.Count}.");
+
+        await Task.Delay(100);
+        gridScheme.Reload(); // Обновление таблицы не работает в середине выполнения метода
+
+        // Запуск предрасчетной проверки
+
+        await Task.Delay(100);
+        var factorList = xmlNameList.InfluentFactorList;
+        var resPlantGenList = RastrSupplier.GetResRegGenLists(true);
+        var rstPath = xmlNameList.RstFilePath;
+
+        RastrSupplier.PrimaryCheckForSectionReaction(factorList, resPlantGenList, rstPath);
+        RastrSupplier.Regime(); // Первичный расчёт режима
+
+        // Проверка, не разошёлся ли режим
+        if (!RastrSupplier.IsRegimeOK())
+        {
+            MainLayout.console.Log("Внимание! Режим разошёлся до начала выполнения утяжеления.Проверьте исходные данные.");
+            return;
+        }
+
+        foreach (var factor in factorList)
+        {
+            if (!InfluentFactorBase.IsInDiapasone(factor))
+            {
+                MainLayout.console.Log("В исходном режиме влияющие факторы должны " +
+                        "находиться в заданном диапазоне значений. Проверьте исходные данные!");
+                return;
+            }
+        }
+
+        // Запуск расчета
+
+        CancellationTokenSource tokenSource = new CancellationTokenSource();
+
+        await Task.Delay(100);
+        MainLayout.console.Log("Запуск расчета.");
+
+        dsiList = CalculationOrder.StartCalculation(schemeList, factorList, resPlantGenList, 60014,
+            xmlNameList.ScnFilePathList, tokenSource.Token, CalculationTask.MaxPowerFlow,
+            xmlNameList.ScnInfoFilePath, xmlNameList.PPredInfoFilePath, xmlNameList.KprFilePath, CalculationType.Classic);
+
+        MainLayout.console.Log("Конец расчета показателей тяжести.");
+
+
+        // CalculationOrder.ClassicCalculation(factorList, maxIteration, resPlantGenList, iteration, 60014, rstPath,
+        //     RastrSupplier.scnPathList, tokenSource.Token, CalculationType.Classic);
+
+        // await Task.Delay(100);
+        // MainLayout.console.Log("Запуск расчета показателей тяжести.");
+
+        // await Task.Delay(100);
+        // dsiList = dsiCalc.CalculateDSI();
+        // MainLayout.console.Log($"Показатели тяжести рассчитаны. Количество расчетных случаев: {dsiList.Count}.");
+
+        // await Task.Delay(100);
+        // dsiList = dsiCalc.RangeDSI(dsiList);
+        // MainLayout.console.Log($"Проведено ранжирование смоделированных возмущений. " +
+        //          $"Место наиболее тяжелого возмущения: {dsiList[0].KZLocation} при загрузке генераторов {dsiList[0].GenPower} МВт.");
+
+        // await Task.Delay(100);
+        // //dsiCalc.WriteCSVFile(dsiList);
+        // MainLayout.console.Log($"Результаты расчета показателей тяжести записаны в csv-файл.");
+        // MainLayout.console.Log("Конец расчета показателей тяжести.");
+
+        gridDSI.Reload();
+
+        busy = false;
+    }
+}

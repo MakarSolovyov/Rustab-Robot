@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FilesFromXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <FileXMLPath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\RustabBotFileNames.xml</FileXMLPath>
+  <CalcType>Классический метод</CalcType>
+  <CalcTask>Определение МДП по критерию обеспечения ДУ</CalcTask>
+  <RstFilePath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\1. Schemes\тестовая для веба.rst</RstFilePath>
+  <SchemeExcelFilePath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\2. For scheme creation\SchemeInfo new.xlsx</SchemeExcelFilePath>
+  <ScnFilePathList>
+    <string>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\3. Scenarios\13.scn</string>
+    <string>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\3. Scenarios\14.scn</string>
+    <string>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\3. Scenarios\17.scn</string>
+    <string>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\3. Scenarios\18.scn</string>
+  </ScnFilePathList>
+  <DfwFilePath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\4. Automation\автоматика.dfw</DfwFilePath>
+  <SchFilePath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\5. Section\Сечения для теста.sch</SchFilePath>
+  <KprFilePath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\6. Controlled parameters\пробник.kpr</KprFilePath>
+  <Ut2FilePath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\7. Trajectory\Траектория утяжеления для веба.ut2</Ut2FilePath>
+  <ScnInfoFilePath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\8. Scn information\ScnInfo.xlsx</ScnInfoFilePath>
+  <PPredInfoFilePath>C:\Users\Макар\source\repos\MakarSolovyov\Rustab Robot Radzen\Rustab Robot Radzen\UploadedFiles\9. PPred information\PpredInfo.xlsx</PPredInfoFilePath>
+  <InfluentFactorList>
+    <InfluentFactorBase xsi:type="VoltageFactor">
+      <NumberFromRastr>60533027</NumberFromRastr>
+      <MinValue>515</MinValue>
+      <MaxValue>525</MaxValue>
+      <CurrentValue>523</CurrentValue>
+    </InfluentFactorBase>
+    <InfluentFactorBase xsi:type="SectionFactor">
+      <NumberFromRastr>60015</NumberFromRastr>
+      <MinValue>0</MinValue>
+      <MaxValue>1700</MaxValue>
+      <CurrentValue>618</CurrentValue>
+      <RegulatingGeneratorsList>
+        <int>60401020</int>
+        <int>60401019</int>
+        <int>60401018</int>
+        <int>60401017</int>
+        <int>60401015</int>
+        <int>60401014</int>
+        <int>60401013</int>
+        <int>60401012</int>
+        <int>60401062</int>
+      </RegulatingGeneratorsList>
+      <Reaction>0</Reaction>
+    </InfluentFactorBase>
+  </InfluentFactorList>
+</FilesFromXML>

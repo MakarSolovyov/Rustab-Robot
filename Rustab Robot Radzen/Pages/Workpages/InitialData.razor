@@ -1,0 +1,211 @@
+﻿@page "/initialdata"
+
+@inject NavigationManager navManager
+
+<PageTitle>Исходные данные</PageTitle>
+
+<div class="row">
+    <RadzenText TextStyle="TextStyle.H4">Исходные данные</RadzenText>
+</div>
+
+<div class="row">
+    <RadzenCard Class="rz-my-auto rz-mx-auto">
+        <div class="row">
+            <div class="col">
+                <div class="row">
+                    <RadzenText TextStyle="TextStyle.Subtitle1">Вариант расчета</RadzenText>
+                </div>
+                <RadzenDropDown @bind-Value=@calcType Data=@calcTypeList AllowClear=true
+                                Placeholder="Выберите вариант ..." Style="width: 100%;"/>
+             </div>
+             <div class="col">
+                <div class="row">
+                    <RadzenText TextStyle="TextStyle.Subtitle1">Задача расчета</RadzenText>
+                </div>
+                <RadzenDropDown @bind-Value=@calcTask Data=@calcTaskList AllowClear=true
+                                Placeholder="Выберите вариант ..." Style="width: 100%;" />
+             </div>
+         </div>
+    </RadzenCard>
+</div>
+
+@for (var i = 0; i < @labelList.Count; i++)
+{
+    <div class="row mt-3">
+        <UploadData UploadedFileLabel="@labelList[i]" UploadedFileFolder="@folderList[i]" TextFromXML="@filePathsFromXML[i]"
+                    GetFilePaths="FillBoxNamesFromXML" GetJustUploadedFolder="FindJustUploadedFolder" GetNumbersList="FillNumbersList" />
+    </div>
+}
+
+<div class="row mt-3">
+    <InfluentFactors NodeNumbersList="nodeNumbersList" SectionNumbersList="sectionNumbersList"
+                     GetInfluentFactorList="FillInfluentFactorList" InfluentFactorListFromXML="influentFactorList" />
+</div>
+
+<div class="row mt-3">
+    <RadzenButton Click=@(args => StartCalculation()) Text="К расчету" ButtonStyle="ButtonStyle.Primary" class="rz-border-radius-6" />
+</div>
+
+@code {
+    private string calcType = null;
+    private string calcTask = null;
+    
+    private List<int> nodeNumbersList = new List<int>();
+    private List<int> sectionNumbersList = new List<int>();
+    private List<InfluentFactorBase> influentFactorList = new List<InfluentFactorBase>();
+
+    private string justUploadedFolder;
+    FilesFromXML xmlNameList = new FilesFromXML();
+    private List<List<string>> filePathsFromXML = new List<List<string>>();
+
+    private List<string> labelList = new List<string>() // Попробовать в перечисление переделать
+    {
+        "динамики (.rst)",
+        "для формирования ремонтных схем (.xlsx)",
+        "сценария (.scn)",
+        "автоматики (.dfw)",
+        "сечения (.sch)",
+        "контролируемых параметров (.kpr)",
+        "траектории утяжеления (.ut2)",
+        "для заполнения информации по моделируемым возмущениям (.xlsx)",
+        "для заполнения информации по PПАР (.xlsx)"
+    };
+
+    private List<string> folderList = new List<string>() // Попробовать в перечисление переделать
+    {
+        "1. Schemes",
+        "2. For scheme creation",
+        "3. Scenarios",
+        "4. Automation",
+        "5. Section",
+        "6. Controlled parameters",
+        "7. Trajectory",
+        "8. Scn information",
+        "9. PPred information",
+    };
+
+    private List<string> calcTypeList = new List<string>() // Попробовать в перечисление переделать
+    {
+        "Классический метод",
+        "С использованием ранжирования возмущений"
+    };
+
+    private List<string> calcTaskList = new List<string>() // Попробовать в перечисление переделать
+    {
+        "Определение МДП по критерию обеспечения ДУ",
+        "Определение перечня возмущений для расчета УВ ПА"
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await base.OnInitializedAsync();
+
+        xmlNameList = xmlNameList.UploadXMLFile(xmlNameList.FileXMLPath);
+
+        calcType = xmlNameList.CalcType;
+        calcTask = xmlNameList.CalcTask;
+
+        List<string> fileNameList;
+        fileNameList = new List<string>() { xmlNameList.RstFilePath };
+        filePathsFromXML.Add(fileNameList);
+
+        fileNameList = new List<string>() { xmlNameList.SchemeExcelFilePath };
+        filePathsFromXML.Add(fileNameList);
+
+        fileNameList = xmlNameList.ScnFilePathList;
+        filePathsFromXML.Add(fileNameList);
+
+        fileNameList = new List<string>() { xmlNameList.DfwFilePath };
+        filePathsFromXML.Add(fileNameList);
+
+        fileNameList = new List<string>() { xmlNameList.SchFilePath };
+        filePathsFromXML.Add(fileNameList);
+
+        fileNameList = new List<string>() { xmlNameList.KprFilePath };
+        filePathsFromXML.Add(fileNameList);
+
+        fileNameList = new List<string>() { xmlNameList.Ut2FilePath };
+        filePathsFromXML.Add(fileNameList);
+
+        fileNameList = new List<string>() { xmlNameList.ScnInfoFilePath };
+        filePathsFromXML.Add(fileNameList);
+
+        fileNameList = new List<string>() { xmlNameList.PPredInfoFilePath };
+        filePathsFromXML.Add(fileNameList);
+
+        influentFactorList = xmlNameList.InfluentFactorList;
+    }
+
+    void FindJustUploadedFolder(string justUploadedFolder)
+    {
+        this.justUploadedFolder = justUploadedFolder;
+    }
+    void FillNumbersList(List<int> numbersList)
+    {
+        if (justUploadedFolder == "1. Schemes")
+        {
+            this.nodeNumbersList = numbersList;
+        }
+        else if (justUploadedFolder == "5. Section")
+        {
+            this.sectionNumbersList = numbersList;
+        }
+    }
+    // TODO: Спросить, можно ли как то обращаться к свойствам объекта через цикл
+    void FillBoxNamesFromXML(List<string> numbersList)
+    {
+        if (justUploadedFolder == folderList[0])
+        {
+            xmlNameList.RstFilePath = numbersList[0];
+        }
+        else if (justUploadedFolder == folderList[1])
+        {
+            xmlNameList.SchemeExcelFilePath = numbersList[0];
+        }
+        else if (justUploadedFolder == folderList[2])
+        {
+            xmlNameList.ScnFilePathList = numbersList;
+        }
+        else if (justUploadedFolder == folderList[3])
+        {
+            xmlNameList.DfwFilePath = numbersList[0];
+        }
+        else if (justUploadedFolder == folderList[4])
+        {
+            xmlNameList.SchFilePath = numbersList[0];
+        }
+        else if (justUploadedFolder == folderList[5])
+        {
+            xmlNameList.KprFilePath = numbersList[0];
+        }
+        else if (justUploadedFolder == folderList[6])
+        {
+            xmlNameList.Ut2FilePath = numbersList[0];
+        }
+        else if (justUploadedFolder == folderList[7])
+        {
+            xmlNameList.ScnInfoFilePath = numbersList[0];
+        }
+        else if (justUploadedFolder == folderList[8])
+        {
+            xmlNameList.PPredInfoFilePath = numbersList[0];
+        }
+    }
+
+    void FillInfluentFactorList(List<InfluentFactorBase> influentFactorList)
+    {
+        xmlNameList.InfluentFactorList = influentFactorList;
+
+        this.influentFactorList = influentFactorList;
+    }
+
+    void StartCalculation()
+    {
+        xmlNameList.CalcType = calcType;
+        xmlNameList.CalcTask = calcTask;
+
+        xmlNameList.SaveXMLFile(xmlNameList, xmlNameList.FileXMLPath);
+
+        navManager.NavigateTo("/calculation");
+    }
+}
